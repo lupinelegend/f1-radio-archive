@@ -71,7 +71,13 @@ export default async function HomePage({
 
   // Filter by location (Grand Prix)
   if (params.location) {
-    filteredClips = filteredClips.filter((clip) => clip.race?.location === params.location)
+    console.log('Filtering by location:', params.location)
+    console.log('Clips before filter:', filteredClips.length)
+    filteredClips = filteredClips.filter((clip) => {
+      console.log('Clip location:', clip.race?.location)
+      return clip.race?.location === params.location
+    })
+    console.log('Clips after filter:', filteredClips.length)
   }
 
   // Filter by session type
