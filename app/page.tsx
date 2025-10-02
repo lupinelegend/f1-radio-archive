@@ -55,6 +55,16 @@ export default async function HomePage({
     clipsQuery = clipsQuery.eq("race_id", params.race)
   }
 
+  // Apply location filter at database level
+  if (params.location) {
+    clipsQuery = clipsQuery.eq("race.location", params.location)
+  }
+
+  // Apply session filter at database level
+  if (params.session) {
+    clipsQuery = clipsQuery.ilike("race.name", `%${params.session}`)
+  }
+
   const { data: clips } = await clipsQuery
 
   // Filter by category if needed (post-query since it's in junction table)
@@ -67,25 +77,6 @@ export default async function HomePage({
 
   if (params.season) {
     filteredClips = filteredClips.filter((clip) => clip.race?.season.toString() === params.season)
-  }
-
-  // Filter by location (Grand Prix)
-  if (params.location) {
-    console.log('Filtering by location:', params.location)
-    console.log('Clips before filter:', filteredClips.length)
-    filteredClips = filteredClips.filter((clip) => {
-      console.log('Clip location:', clip.race?.location)
-      return clip.race?.location === params.location
-    })
-    console.log('Clips after filter:', filteredClips.length)
-  }
-
-  // Filter by session type
-  if (params.session) {
-    filteredClips = filteredClips.filter((clip) => {
-      const sessionName = clip.race?.name?.split(' - ')[1] // Extract session from "Location - Session"
-      return sessionName === params.session
-    })
   }
 
   // Get unique locations and sessions for filters
