@@ -29,12 +29,12 @@ export default function TranscribePage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Failed to transcribe')
+        setError(JSON.stringify(data, null, 2) || 'Failed to transcribe')
       } else {
         setResult(data)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : JSON.stringify(err, null, 2))
     } finally {
       setLoading(false)
     }
