@@ -216,6 +216,22 @@ export function FilterBar({
               </button>
             </Badge>
           )}
+          {selectedLocation && (
+            <Badge variant="secondary" className="gap-1">
+              Grand Prix: {selectedLocation}
+              <button onClick={() => updateFilter("location", null)} className="ml-1 hover:text-foreground">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {selectedSession && (
+            <Badge variant="secondary" className="gap-1">
+              Session: {selectedSession}
+              <button onClick={() => updateFilter("session", null)} className="ml-1 hover:text-foreground">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
         </div>
       )}
     </div>
