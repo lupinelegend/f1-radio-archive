@@ -10,9 +10,11 @@ import { transcribeAudioWithRetry } from '@/lib/transcription-service'
  * Body: { clipId?: string, limit?: number }
  */
 export async function POST(request: Request) {
+  // Set a longer timeout (max 60s for Vercel Pro, 10s for Hobby)
+  // We'll process fewer clips to stay under the limit
   try {
     const body = await request.json()
-    const { clipId, limit = 10 } = body
+    const { clipId, limit = 1 } = body // Default to 1 clip to avoid timeout
 
     const supabase = await createClient()
 
