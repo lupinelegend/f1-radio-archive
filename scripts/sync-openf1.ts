@@ -77,10 +77,13 @@ async function syncRadioMessages(year?: number) {
       }
 
       // Sync race/session to database
+      // Combine location and session name for better display (e.g., "Abu Dhabi Grand Prix - Race")
+      const raceName = `${session.location} - ${session.session_name}`
+      
       const { data: raceData, error: raceError } = await supabase
         .from('races')
         .upsert({
-          name: session.session_name,
+          name: raceName,
           location: session.location,
           season: session.year,
           race_date: session.date_start,

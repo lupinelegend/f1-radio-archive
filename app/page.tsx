@@ -13,6 +13,8 @@ export default async function HomePage({
     race?: string
     category?: string
     season?: string
+    location?: string
+    session?: string
   }>
 }) {
   const params = await searchParams
@@ -67,6 +69,26 @@ export default async function HomePage({
     filteredClips = filteredClips.filter((clip) => clip.race?.season.toString() === params.season)
   }
 
+  // Filter by location (Grand Prix)
+  if (params.location) {
+    filteredClips = filteredClips.filter((clip) => clip.race?.location === params.location)
+  }
+
+  // Filter by session type
+  if (params.session) {
+    filteredClips = filteredClips.filter((clip) => {
+      const sessionName = clip.race?.name?.split(' - ')[1] // Extract session from "Location - Session"
+      return sessionName === params.session
+    })
+  }
+
+  // Get unique locations and sessions for filters
+  const uniqueLocations = [...new Set(racesResult.data?.map(r => r.location).filter(Boolean))]
+  const uniqueSessions = [...new Set(racesResult.data?.map(r => {
+    const parts = r.name?.split(' - ')
+    return parts && parts.length > 1 ? parts[1] : null
+  }).filter(Boolean))]
+
   return (
     <div className="min-h-screen bg-background">
       <Header clipCount={filteredClips.length} />
@@ -82,10 +104,14 @@ export default async function HomePage({
             drivers={driversResult.data || []}
             races={racesResult.data || []}
             categories={categoriesResult.data || []}
+            locations={uniqueLocations}
+            sessions={uniqueSessions}
             selectedDriver={params.driver}
             selectedRace={params.race}
             selectedCategory={params.category}
             selectedSeason={params.season}
+            selectedLocation={params.location}
+            selectedSession={params.session}
           />
 
           {/* Clips Grid */}

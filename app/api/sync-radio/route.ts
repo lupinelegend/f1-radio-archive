@@ -68,10 +68,13 @@ export async function POST(request: Request) {
       }
 
       // Sync race/meeting to database
+      // Combine location and session name for better display
+      const raceName = `${session.location} - ${session.session_name}`
+      
       const { data: raceData, error: raceError } = await supabase
         .from('races')
         .upsert({
-          name: session.session_name,
+          name: raceName,
           location: session.location,
           season: session.year,
           race_date: session.date_start,

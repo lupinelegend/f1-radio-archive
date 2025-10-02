@@ -15,20 +15,28 @@ interface FilterBarProps {
   drivers: Driver[]
   races: Race[]
   categories: Category[]
+  locations: string[]
+  sessions: string[]
   selectedDriver?: string
   selectedRace?: string
   selectedCategory?: string
   selectedSeason?: string
+  selectedLocation?: string
+  selectedSession?: string
 }
 
 export function FilterBar({
   drivers,
   races,
   categories,
+  locations,
+  sessions,
   selectedDriver,
   selectedRace,
   selectedCategory,
   selectedSeason,
+  selectedLocation,
+  selectedSession,
 }: FilterBarProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -65,10 +73,12 @@ export function FilterBar({
     params.delete("race")
     params.delete("category")
     params.delete("season")
+    params.delete("location")
+    params.delete("session")
     router.push(`/?${params.toString()}`)
   }
 
-  const hasActiveFilters = selectedDriver || selectedRace || selectedCategory || selectedSeason
+  const hasActiveFilters = selectedDriver || selectedRace || selectedCategory || selectedSeason || selectedLocation || selectedSession
 
   return (
     <div className="flex flex-col gap-4">
@@ -108,18 +118,37 @@ export function FilterBar({
           </SelectContent>
         </Select>
 
+        {/* Location (Grand Prix) Filter */}
         <Select
-          value={selectedRace || "all"}
-          onValueChange={(value) => updateFilter("race", value === "all" ? null : value)}
+          value={selectedLocation || "all"}
+          onValueChange={(value) => updateFilter("location", value === "all" ? null : value)}
         >
           <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="All Races" />
+            <SelectValue placeholder="All Grand Prix" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Races</SelectItem>
-            {filteredRaces.map((race) => (
-              <SelectItem key={race.id} value={race.id}>
-                {race.name} {race.season}
+            <SelectItem value="all">All Grand Prix</SelectItem>
+            {locations.map((location) => (
+              <SelectItem key={location} value={location}>
+                {location}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Session Type Filter */}
+        <Select
+          value={selectedSession || "all"}
+          onValueChange={(value) => updateFilter("session", value === "all" ? null : value)}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="All Sessions" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sessions</SelectItem>
+            {sessions.map((session) => (
+              <SelectItem key={session} value={session}>
+                {session}
               </SelectItem>
             ))}
           </SelectContent>
