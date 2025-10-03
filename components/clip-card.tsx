@@ -156,9 +156,6 @@ export function ClipCard({ clip }: { clip: Clip }) {
           {/* Play Button & Votes */}
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-2">
-              {clip.duration && clip.duration > 0 && (
-                <span className="text-xs text-muted-foreground">{formatDuration(clip.duration)}</span>
-              )}
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
@@ -169,7 +166,7 @@ export function ClipCard({ clip }: { clip: Clip }) {
                 >
                   <ThumbsUp className={`h-3 w-3 ${userVote === "up" ? "fill-current" : ""}`} />
                 </Button>
-                <span className="text-xs font-medium min-w-[20px] text-center">{voteCount}</span>
+                <span className="text-xs font-medium min-w-[24px] text-center tabular-nums">{voteCount}</span>
                 <Button
                   variant="ghost"
                   size="icon"
