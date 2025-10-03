@@ -103,29 +103,26 @@ export function ClipCard({ clip }: { clip: Clip }) {
   return (
     <>
       <Card className="group hover:shadow-lg transition-shadow">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-lg leading-tight text-balance">{clip.title}</CardTitle>
-            {clip.is_premium && (
-              <Badge variant="secondary" className="shrink-0 gap-1">
+        <CardContent className="space-y-4 pt-6">
+          {/* Premium Badge */}
+          {clip.is_premium && (
+            <div className="flex justify-end -mt-2">
+              <Badge variant="secondary" className="gap-1">
                 <Lock className="h-3 w-3" />
                 Premium
               </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+            </div>
+          )}
           {/* Driver & Race Info */}
-          <div className="space-y-1 text-sm">
+          <div className="space-y-1">
             {clip.driver && (
-              <p className="text-foreground font-medium">
-                {clip.driver.name}
-                {clip.driver.number && <span className="text-muted-foreground ml-1">#{clip.driver.number}</span>}
+              <p className="text-foreground font-semibold text-base">
+                {clip.driver.name} {clip.driver.number && `#${clip.driver.number}`}
               </p>
             )}
             {clip.race && (
-              <p className="text-muted-foreground">
-                {clip.race.name} {clip.race.season}
+              <p className="text-muted-foreground text-sm">
+                {clip.race.location} - {clip.race.name?.split(' - ')[1] || clip.race.name} {clip.race.season}
               </p>
             )}
           </div>

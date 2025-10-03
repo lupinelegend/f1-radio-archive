@@ -11,7 +11,9 @@
     "sync:openf1:2024": "tsx scripts/sync-openf1.ts 2024",
     "sync:openf1:2023": "tsx scripts/sync-openf1.ts 2023",
     "transcribe": "tsx scripts/transcribe-clips.ts",
-    "transcribe:limit": "tsx scripts/transcribe-clips.ts --limit=10"
+    "transcribe:limit": "tsx scripts/transcribe-clips.ts --limit=10",
+    "auto-tag": "tsx scripts/auto-tag-clips.ts",
+    "auto-tag:limit": "tsx scripts/auto-tag-clips.ts --limit=10"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
