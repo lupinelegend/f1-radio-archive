@@ -8,7 +8,7 @@ import { useState, useEffect } from "react"
 import { AudioPlayer } from "@/components/audio-player"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 type Clip = {
   id: string
@@ -28,6 +28,7 @@ export function ClipCard({ clip }: { clip: Clip }) {
   const [voteCount, setVoteCount] = useState(0)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   useEffect(() => {
@@ -98,7 +99,13 @@ export function ClipCard({ clip }: { clip: Clip }) {
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const categories = clip.clip_tags?.map((tag) => tag.category?.name).filter(Boolean) || []
+  const categories = clip.clip_tags?.map((tag) => tag.category).filter(Boolean) || []
+
+  const handleCategoryClick = (categoryId: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('category', categoryId)
+    router.push(`/?${params.toString()}`)
+  }
 
   return (
     <>
@@ -134,8 +141,13 @@ export function ClipCard({ clip }: { clip: Clip }) {
           {categories.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {categories.map((category, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {category}
+                <Badge 
+                  key={index} 
+                  variant="outline" 
+                  className="text-xs cursor-pointer hover:bg-accent transition-colors"
+                  onClick={() => handleCategoryClick(category!.id)}
+                >
+                  {category!.name}
                 </Badge>
               ))}
             </div>
@@ -202,8 +214,16 @@ export function ClipCard({ clip }: { clip: Clip }) {
                 <p className="text-sm font-medium mb-2">Categories</p>
                 <div className="flex flex-wrap gap-2">
                   {categories.map((category, index) => (
-                    <Badge key={index} variant="secondary">
-                      {category}
+                    <Badge 
+                      key={index} 
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => {
+                        setIsPlayerOpen(false)
+                        handleCategoryClick(category!.id)
+                      }}
+                    >
+                      {category!.name}
                     </Badge>
                   ))}
                 </div>
