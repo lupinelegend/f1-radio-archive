@@ -156,7 +156,9 @@ export function ClipCard({ clip }: { clip: Clip }) {
           {/* Play Button & Votes */}
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{formatDuration(clip.duration)}</span>
+              {clip.duration && clip.duration > 0 && (
+                <span className="text-xs text-muted-foreground">{formatDuration(clip.duration)}</span>
+              )}
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
