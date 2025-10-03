@@ -13,7 +13,9 @@
     "transcribe": "tsx scripts/transcribe-clips.ts",
     "transcribe:limit": "tsx scripts/transcribe-clips.ts --limit=10",
     "auto-tag": "tsx scripts/auto-tag-clips.ts",
-    "auto-tag:limit": "tsx scripts/auto-tag-clips.ts --limit=10"
+    "auto-tag:10": "tsx scripts/auto-tag-clips.ts --limit=10",
+    "auto-tag:100": "tsx scripts/auto-tag-clips.ts --limit=100",
+    "auto-tag:1000": "tsx scripts/auto-tag-clips.ts --limit=1000"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

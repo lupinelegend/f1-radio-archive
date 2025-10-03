@@ -44,32 +44,35 @@ async function autoTagClips(limit?: number) {
 
   console.log(`📋 Found ${categories.length} categories\n`)
 
-  // Get clips with transcripts but no tags
-  let query = supabase
-    .from('clips')
-    .select(`
-      id,
-      transcript,
-      driver:drivers(name),
-      race:races(name, location),
-      clip_tags(category_id)
-    `)
-    .not('transcript', 'is', null)
-    .neq('transcript', '')
-    .order('created_at', { ascending: false })
-
-  if (limit) {
-    query = query.limit(limit)
+  // Get clips with transcripts - fetch in batches if limit > 1000
+  const requestedLimit = limit || 1000
+  const batchSize = 1000
+  let allClips: any[] = []
+  
+  for (let offset = 0; offset < requestedLimit; offset += batchSize) {
+    const { data: batch } = await supabase
+      .from('clips')
+      .select('id, transcript, driver:drivers(name), race:races(name, location)')
+      .not('transcript', 'is', null)
+      .neq('transcript', '')
+      .order('created_at', { ascending: false }) // Process newest first to find untagged clips faster
+      .range(offset, offset + batchSize - 1)
+    
+    if (!batch || batch.length === 0) break
+    
+    allClips.push(...batch)
+    
+    if (batch.length < batchSize) break // Last batch
   }
+  
+  const clips = allClips.slice(0, requestedLimit)
 
-  const { data: clips } = await query
+  console.log(`📝 Processing up to ${clips.length} clips (will skip already-tagged)...\n`)
 
   if (!clips || clips.length === 0) {
     console.log('✅ No clips to tag!')
     return
   }
-
-  console.log(`📝 Processing ${clips.length} clips...\n`)
 
   const categoryList = categories.map(c => `- ${c.name}: ${c.description}`).join('\n')
 
@@ -80,13 +83,19 @@ async function autoTagClips(limit?: number) {
     const clip = clips[i]
     const progress = `[${i + 1}/${clips.length}]`
 
-    // Skip if already tagged
-    if (clip.clip_tags && clip.clip_tags.length > 0) {
-      console.log(`${progress} ⏭️  Already tagged, skipping`)
+    console.log(`${progress} Processing: ${clip.driver?.name} - ${clip.race?.location}`)
+    
+    // Check if already tagged BEFORE calling AI
+    const { count } = await supabase
+      .from('clip_tags')
+      .select('*', { count: 'exact', head: true })
+      .eq('clip_id', clip.id)
+
+    if (count && count > 0) {
+      console.log(`   ⏭️  Already tagged, skipping`)
       continue
     }
 
-    console.log(`${progress} Processing: ${clip.driver?.name} - ${clip.race?.location}`)
     console.log(`   Transcript: "${clip.transcript?.substring(0, 80)}..."`)
 
     try {
@@ -146,13 +155,22 @@ Be selective - only choose categories that clearly apply. Maximum 3 categories p
         category_id: categoryId,
       }))
 
-      const { error } = await supabase.from('clip_tags').insert(tags)
+      const { data, error } = await supabase
+        .from('clip_tags')
+        .insert(tags)
+        .select()
 
       if (error) {
+        // Skip if duplicate (clip already tagged)
+        if (error.message?.includes('duplicate key')) {
+          console.log(`   ⏭️  Already tagged, skipping`)
+          continue
+        }
         console.log(`   ❌ Error saving tags: ${error.message}`)
+        console.log(`   Error details:`, error)
         failCount++
       } else {
-        console.log(`   ✅ Tagged with: ${selectedCategories.join(', ')}`)
+        console.log(`   ✅ Tagged with: ${selectedCategories.join(', ')} (${data?.length || 0} tags saved)`)
         successCount++
       }
 
