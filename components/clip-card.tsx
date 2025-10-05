@@ -9,6 +9,7 @@ import { AudioPlayer } from "@/components/audio-player"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter, useSearchParams } from "next/navigation"
+import { toggleFavorite } from "@/app/actions/favorites"
 
 type Clip = {
   id: string
@@ -85,77 +86,32 @@ export function ClipCard({ clip }: { clip: Clip }) {
   }
 
   const handleFavorite = async (e?: React.MouseEvent) => {
-    // Prevent event bubbling to parent elements
     e?.stopPropagation()
     e?.preventDefault()
     
-    console.log('Favorite clicked, current state:', isFavorited)
-    console.log('Supabase client:', supabase)
-    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-    
     if (!isAuthenticated) {
-      console.log('Not authenticated, redirecting to login')
       router.push("/auth/login")
       return
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) {
-      console.log('No user found')
-      return
-    }
-
-    console.log('User:', user.id, 'Clip:', clip.id)
-
-    if (isFavorited) {
-      // Remove favorite
-      console.log('Removing favorite...')
-      const { error } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("clip_id", clip.id)
-        .eq("user_id", user.id)
+    // Optimistically update UI
+    setIsFavorited(!isFavorited)
+    
+    try {
+      const result = await toggleFavorite(clip.id)
       
-      if (error) {
-        console.error('Error removing favorite:', error)
-      } else {
-        console.log('Favorite removed successfully')
-        setIsFavorited(false)
+      if (result.error) {
+        console.error('Error toggling favorite:', result.error)
+        // Revert on error
+        setIsFavorited(isFavorited)
+      } else if (result.isFavorited !== undefined) {
+        // Update with server response
+        setIsFavorited(result.isFavorited)
       }
-    } else {
-      // Add favorite
-      console.log('Adding favorite...')
-      console.log('About to call supabase.from("favorites").insert()')
-      
-      // Optimistically update UI
-      setIsFavorited(true)
-      
-      try {
-        console.log('Waiting for insert...')
-        
-        // Create a fresh Supabase client for this request
-        const freshClient = createClient()
-        
-        const result = await freshClient
-          .from("favorites")
-          .insert({ clip_id: clip.id, user_id: user.id })
-        
-        console.log('Insert completed:', result)
-        
-        if (result.error) {
-          console.error('Error adding favorite:', result.error)
-          // Revert optimistic update
-          setIsFavorited(false)
-        } else {
-          console.log('Favorite added successfully')
-        }
-      } catch (err) {
-        console.error('Exception adding favorite:', err)
-        // Revert optimistic update
-        setIsFavorited(false)
-      }
+    } catch (err) {
+      console.error('Exception toggling favorite:', err)
+      // Revert on error
+      setIsFavorited(isFavorited)
     }
   }
 
