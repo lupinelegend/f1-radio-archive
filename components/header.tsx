@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { UserMenu } from "@/components/user-menu"
-import { Crown } from "lucide-react"
+import { Crown, Star } from "lucide-react"
 
 export async function Header({ clipCount }: { clipCount: number }) {
   const supabase = await createClient()
@@ -30,12 +30,20 @@ export async function Header({ clipCount }: { clipCount: number }) {
               </Badge>
             )}
             {user && (
-              <Button asChild variant="outline" size="sm" className="gap-2 bg-transparent">
-                <Link href="/premium">
-                  <Crown className="h-4 w-4" />
-                  Premium
-                </Link>
-              </Button>
+              <>
+                <Button asChild variant="outline" size="sm" className="gap-2 bg-transparent">
+                  <Link href="/favorites">
+                    <Star className="h-4 w-4" />
+                    Favorites
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm" className="gap-2 bg-transparent">
+                  <Link href="/premium">
+                    <Crown className="h-4 w-4" />
+                    Premium
+                  </Link>
+                </Button>
+              </>
             )}
             {user ? (
               <UserMenu user={user} />

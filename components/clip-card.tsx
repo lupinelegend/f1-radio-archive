@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Play, Lock, ThumbsUp, ThumbsDown } from "lucide-react"
+import { Play, Lock, ThumbsUp, ThumbsDown, Star } from "lucide-react"
 import { useState, useEffect } from "react"
 import { AudioPlayer } from "@/components/audio-player"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -27,12 +27,14 @@ export function ClipCard({ clip }: { clip: Clip }) {
   const [userVote, setUserVote] = useState<"up" | "down" | null>(null)
   const [voteCount, setVoteCount] = useState(0)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isFavorited, setIsFavorited] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
 
   useEffect(() => {
     checkAuthAndVotes()
+    checkFavoriteStatus()
   }, [])
 
   const checkAuthAndVotes = async () => {
@@ -62,6 +64,51 @@ export function ClipCard({ clip }: { clip: Clip }) {
       const upvotes = votes.filter((v) => v.vote_type === "up").length
       const downvotes = votes.filter((v) => v.vote_type === "down").length
       setVoteCount(upvotes - downvotes)
+    }
+  }
+
+  const checkFavoriteStatus = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (user) {
+      const { data } = await supabase
+        .from("favorites")
+        .select("id")
+        .eq("clip_id", clip.id)
+        .eq("user_id", user.id)
+        .single()
+      
+      setIsFavorited(!!data)
+    }
+  }
+
+  const handleFavorite = async () => {
+    if (!isAuthenticated) {
+      router.push("/auth/login")
+      return
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return
+
+    if (isFavorited) {
+      // Remove favorite
+      await supabase
+        .from("favorites")
+        .delete()
+        .eq("clip_id", clip.id)
+        .eq("user_id", user.id)
+      setIsFavorited(false)
+    } else {
+      // Add favorite
+      await supabase
+        .from("favorites")
+        .insert({ clip_id: clip.id, user_id: user.id })
+      setIsFavorited(true)
     }
   }
 
@@ -109,8 +156,20 @@ export function ClipCard({ clip }: { clip: Clip }) {
 
   return (
     <>
-      <Card className="group hover:shadow-lg transition-shadow">
+      <Card className="group hover:shadow-lg transition-shadow relative">
         <CardContent className="space-y-4 pt-6">
+          {/* Favorite Button */}
+          {isAuthenticated && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 h-8 w-8 z-10"
+              onClick={handleFavorite}
+            >
+              <Star className={`h-4 w-4 ${isFavorited ? "fill-yellow-400 text-yellow-400" : ""}`} />
+            </Button>
+          )}
+          
           {/* Premium Badge */}
           {clip.is_premium && (
             <div className="flex justify-end -mt-2">
