@@ -84,8 +84,17 @@ export function ClipCard({ clip }: { clip: Clip }) {
     }
   }
 
-  const handleFavorite = async () => {
+  const handleFavorite = async (e?: React.MouseEvent) => {
+    // Prevent event bubbling to parent elements
+    e?.stopPropagation()
+    e?.preventDefault()
+    
+    console.log('Favorite clicked, current state:', isFavorited)
+    console.log('Supabase client:', supabase)
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    
     if (!isAuthenticated) {
+      console.log('Not authenticated, redirecting to login')
       router.push("/auth/login")
       return
     }
@@ -93,22 +102,60 @@ export function ClipCard({ clip }: { clip: Clip }) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      console.log('No user found')
+      return
+    }
+
+    console.log('User:', user.id, 'Clip:', clip.id)
 
     if (isFavorited) {
       // Remove favorite
-      await supabase
+      console.log('Removing favorite...')
+      const { error } = await supabase
         .from("favorites")
         .delete()
         .eq("clip_id", clip.id)
         .eq("user_id", user.id)
-      setIsFavorited(false)
+      
+      if (error) {
+        console.error('Error removing favorite:', error)
+      } else {
+        console.log('Favorite removed successfully')
+        setIsFavorited(false)
+      }
     } else {
       // Add favorite
-      await supabase
-        .from("favorites")
-        .insert({ clip_id: clip.id, user_id: user.id })
+      console.log('Adding favorite...')
+      console.log('About to call supabase.from("favorites").insert()')
+      
+      // Optimistically update UI
       setIsFavorited(true)
+      
+      try {
+        console.log('Waiting for insert...')
+        
+        // Create a fresh Supabase client for this request
+        const freshClient = createClient()
+        
+        const result = await freshClient
+          .from("favorites")
+          .insert({ clip_id: clip.id, user_id: user.id })
+        
+        console.log('Insert completed:', result)
+        
+        if (result.error) {
+          console.error('Error adding favorite:', result.error)
+          // Revert optimistic update
+          setIsFavorited(false)
+        } else {
+          console.log('Favorite added successfully')
+        }
+      } catch (err) {
+        console.error('Exception adding favorite:', err)
+        // Revert optimistic update
+        setIsFavorited(false)
+      }
     }
   }
 
@@ -164,9 +211,9 @@ export function ClipCard({ clip }: { clip: Clip }) {
               variant="ghost"
               size="icon"
               className="absolute top-2 right-2 h-8 w-8 z-10"
-              onClick={handleFavorite}
+              onClick={(e) => handleFavorite(e)}
             >
-              <Star className={`h-4 w-4 ${isFavorited ? "fill-yellow-400 text-yellow-400" : ""}`} />
+              <Star className={`h-4 w-4 transition-colors ${isFavorited ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground hover:text-foreground"}`} />
             </Button>
           )}
           
@@ -248,10 +295,24 @@ export function ClipCard({ clip }: { clip: Clip }) {
       <Dialog open={isPlayerOpen} onOpenChange={setIsPlayerOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-balance">{clip.title}</DialogTitle>
-            <DialogDescription>
-              {clip.driver?.name} - {clip.race?.name} {clip.race?.season}
-            </DialogDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <DialogTitle className="text-balance">{clip.title}</DialogTitle>
+                <DialogDescription>
+                  {clip.driver?.name} - {clip.race?.name} {clip.race?.season}
+                </DialogDescription>
+              </div>
+              {isAuthenticated && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={handleFavorite}
+                >
+                  <Star className={`h-4 w-4 transition-colors ${isFavorited ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground hover:text-foreground"}`} />
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
           <div className="space-y-4">
