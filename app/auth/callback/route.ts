@@ -4,11 +4,7 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  
-  // Get the origin from headers or fallback to VERCEL_URL
-  const origin = request.headers.get('origin') || 
-                 `https://${process.env.VERCEL_URL}` ||
-                 requestUrl.origin
+  const origin = requestUrl.origin
 
   if (code) {
     const supabase = await createClient()
