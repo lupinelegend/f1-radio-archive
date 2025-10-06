@@ -48,14 +48,9 @@ export async function Header({ clipCount }: { clipCount: number }) {
             {user ? (
               <UserMenu user={user} />
             ) : (
-              <div className="flex items-center gap-2">
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/auth/login">Login</Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link href="/auth/sign-up">Sign up</Link>
-                </Button>
-              </div>
+              <Button asChild size="sm">
+                <Link href="/auth/login">Sign in with Google</Link>
+              </Button>
             )}
           </div>
         </div>
