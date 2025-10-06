@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import Image from "next/image"
 import { UserMenu } from "@/components/user-menu"
 import { Crown, Star } from "lucide-react"
 
@@ -16,12 +17,16 @@ export async function Header({ clipCount }: { clipCount: number }) {
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <Link href="/">
-              <h1 className="font-bold text-3xl tracking-tight text-balance hover:opacity-80 transition-opacity">
-                F1 Radio Archive
-              </h1>
+            <Link href="/" className="block hover:opacity-80 transition-opacity">
+              <Image 
+                src="/Logo.png" 
+                alt="F1 Radio Archive" 
+                width={200} 
+                height={60}
+                priority
+                className="h-auto w-auto max-h-16"
+              />
             </Link>
-            <p className="text-muted-foreground text-sm mt-1">Relive the most iconic team radio moments</p>
           </div>
           <div className="flex items-center gap-4">
             {clipCount > 0 && (

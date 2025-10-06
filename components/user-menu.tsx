@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, LogOut, Crown } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -17,6 +17,10 @@ import { useRouter } from "next/navigation"
 interface UserMenuProps {
   user: {
     email?: string
+    user_metadata?: {
+      avatar_url?: string
+      full_name?: string
+    }
   }
 }
 
@@ -26,27 +30,34 @@ export function UserMenu({ user }: UserMenuProps) {
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
+    router.push('/auth/login')
     router.refresh()
   }
 
-  const getInitials = (email?: string) => {
+  const getInitials = (email?: string, fullName?: string) => {
+    if (fullName) {
+      const names = fullName.split(' ')
+      if (names.length >= 2) {
+        return `${names[0].charAt(0)}${names[1].charAt(0)}`.toUpperCase()
+      }
+      return fullName.charAt(0).toUpperCase()
+    }
     if (!email) return "U"
     return email.charAt(0).toUpperCase()
   }
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
-          </Avatar>
-        </Button>
+      <DropdownMenuTrigger className="relative h-10 w-10 rounded-full hover:opacity-80 transition-opacity cursor-pointer focus:outline-none">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.full_name || user.email} />
+          <AvatarFallback>{getInitials(user.email, user.user_metadata?.full_name)}</AvatarFallback>
+        </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Premium Member</p>
+            <p className="text-sm font-medium leading-none">{user.user_metadata?.full_name || 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
           </div>
         </DropdownMenuLabel>
