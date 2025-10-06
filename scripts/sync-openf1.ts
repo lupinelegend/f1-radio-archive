@@ -46,9 +46,15 @@ async function syncRadioMessages(year?: number) {
     let skippedMessages = 0
 
     // Process each session
-    for (const session of sessions) {
-      console.log(`\n📍 Processing: ${session.session_name} - ${session.location} (${session.year})`)
+    for (let i = 0; i < sessions.length; i++) {
+      const session = sessions[i]
+      console.log(`\n📍 Processing [${i + 1}/${sessions.length}]: ${session.session_name} - ${session.location} (${session.year})`)
       console.log(`   Session Key: ${session.session_key}`)
+
+      // Add delay to avoid rate limiting (wait 2 seconds between sessions)
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
 
       // Fetch drivers for this session
       const drivers = await fetchDrivers({ session_key: session.session_key })
@@ -72,7 +78,7 @@ async function syncRadioMessages(year?: number) {
           })
 
         if (driverError) {
-          console.error(`   ❌ Error syncing driver ${driver.full_name}:`, driverError.message)
+          console.error(`   ❌ Error syncing driver ${driver.full_name}:`, driverError)
         }
       }
 

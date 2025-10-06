@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Play, Lock, ThumbsUp, ThumbsDown, Star } from "lucide-react"
+import { Play, Lock, ThumbsUp, ThumbsDown, Star, Share2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { AudioPlayer } from "@/components/audio-player"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -157,6 +157,28 @@ export function ClipCard({ clip }: { clip: Clip }) {
     router.push(`/?${params.toString()}`)
   }
 
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/?clip=${clip.id}`
+    const shareText = `${clip.driver?.name} - ${clip.race?.name} ${clip.race?.season}`
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareText,
+          text: clip.transcript || shareText,
+          url: shareUrl,
+        })
+      } catch (err) {
+        // User cancelled share or error occurred
+        console.log('Share cancelled')
+      }
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(shareUrl)
+      alert('Link copied to clipboard!')
+    }
+  }
+
   return (
     <>
       <Card className="group hover:shadow-lg transition-shadow relative">
@@ -218,21 +240,29 @@ export function ClipCard({ clip }: { clip: Clip }) {
           {/* Play Button & Votes */}
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
+                onClick={handleShare}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-1 bg-secondary rounded-lg px-2 py-1">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-6 w-6 hover:bg-accent"
                   onClick={() => handleVote("up")}
                   disabled={!isAuthenticated}
                 >
                   <ThumbsUp className={`h-3 w-3 ${userVote === "up" ? "fill-current" : ""}`} />
                 </Button>
-                <span className="text-xs font-medium min-w-[24px] text-center tabular-nums">{voteCount}</span>
+                <span className="text-xs font-medium min-w-[20px] text-center tabular-nums">{voteCount}</span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-6 w-6 hover:bg-accent"
                   onClick={() => handleVote("down")}
                   disabled={!isAuthenticated}
                 >
@@ -311,29 +341,38 @@ export function ClipCard({ clip }: { clip: Clip }) {
               </div>
             )}
 
-            {/* Vote Buttons */}
-            <div className="flex items-center justify-center gap-4 pt-2">
+            {/* Share and Vote Buttons */}
+            <div className="flex items-center justify-center gap-3 pt-2">
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
-                className="gap-2 bg-transparent"
-                onClick={() => handleVote("up")}
-                disabled={!isAuthenticated}
+                className="gap-2 rounded-lg h-10"
+                onClick={handleShare}
               >
-                <ThumbsUp className={`h-4 w-4 ${userVote === "up" ? "fill-current" : ""}`} />
-                Upvote
+                <Share2 className="h-4 w-4" />
+                Share
               </Button>
-              <span className="font-medium">{voteCount}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 bg-transparent"
-                onClick={() => handleVote("down")}
-                disabled={!isAuthenticated}
-              >
-                <ThumbsDown className={`h-4 w-4 ${userVote === "down" ? "fill-current" : ""}`} />
-                Downvote
-              </Button>
+              <div className="flex items-center gap-1 bg-secondary rounded-lg px-3 h-10">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-accent"
+                  onClick={() => handleVote("up")}
+                  disabled={!isAuthenticated}
+                >
+                  <ThumbsUp className={`h-4 w-4 ${userVote === "up" ? "fill-current" : ""}`} />
+                </Button>
+                <span className="text-sm font-medium min-w-[24px] text-center tabular-nums">{voteCount}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-accent"
+                  onClick={() => handleVote("down")}
+                  disabled={!isAuthenticated}
+                >
+                  <ThumbsDown className={`h-4 w-4 ${userVote === "down" ? "fill-current" : ""}`} />
+                </Button>
+              </div>
             </div>
             {!isAuthenticated && <p className="text-xs text-center text-muted-foreground">Login to vote on clips</p>}
           </div>
