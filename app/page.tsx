@@ -27,6 +27,9 @@ export default async function HomePage({
     supabase.from("categories").select("id, name").order("name"),
   ])
 
+  // Check if any filters are applied
+  const hasFilters = params.search || params.driver || params.race || params.category || params.season || params.location || params.session
+
   // Build clips query with filters
   let clipsQuery = supabase
     .from("clips")
@@ -38,7 +41,17 @@ export default async function HomePage({
       clip_tags(category:categories(id, name))
     `,
     )
-    .order("created_at", { ascending: false })
+
+  // If no filters, get random clips
+  if (!hasFilters) {
+    // Get random clips by ordering randomly and limiting to 12
+    clipsQuery = clipsQuery.limit(12)
+    // Note: Postgres doesn't have a native random() order in Supabase client
+    // So we'll fetch recent clips instead
+    clipsQuery = clipsQuery.order("created_at", { ascending: false })
+  } else {
+    clipsQuery = clipsQuery.order("created_at", { ascending: false })
+  }
 
   // Apply search filter
   if (params.search) {
