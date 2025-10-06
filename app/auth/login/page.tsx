@@ -15,10 +15,15 @@ export default function LoginPage() {
     setError(null)
 
     try {
+      // Get the correct redirect URL (works in both dev and production)
+      const redirectUrl = typeof window !== 'undefined' 
+        ? `${window.location.protocol}//${window.location.host}/auth/callback`
+        : '/auth/callback'
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectUrl,
         },
       })
       if (error) throw error
