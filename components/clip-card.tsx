@@ -251,22 +251,28 @@ export function ClipCard({ clip }: { clip: Clip }) {
       <Dialog open={isPlayerOpen} onOpenChange={setIsPlayerOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <DialogTitle className="text-balance">{clip.title}</DialogTitle>
+            <div className="space-y-1">
+              {clip.driver && (
+                <div className="flex items-center gap-2">
+                  <DialogTitle className="text-base font-semibold">
+                    {clip.driver.name} {clip.driver.number && `#${clip.driver.number}`}
+                  </DialogTitle>
+                  {isAuthenticated && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={handleFavorite}
+                    >
+                      <Star className={`h-4 w-4 transition-colors ${isFavorited ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground hover:text-foreground"}`} />
+                    </Button>
+                  )}
+                </div>
+              )}
+              {clip.race && (
                 <DialogDescription>
-                  {clip.driver?.name} - {clip.race?.name} {clip.race?.season}
+                  {clip.race.location} - {clip.race.name?.split(' - ')[1] || clip.race.name} {clip.race.season}
                 </DialogDescription>
-              </div>
-              {isAuthenticated && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={handleFavorite}
-                >
-                  <Star className={`h-4 w-4 transition-colors ${isFavorited ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground hover:text-foreground"}`} />
-                </Button>
               )}
             </div>
           </DialogHeader>
