@@ -16,18 +16,22 @@ export async function Header({ clipCount }: { clipCount: number }) {
     <header className="border-b border-border bg-card">
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
-          <div>
-            <Link href="/" className="block hover:opacity-80 transition-opacity">
-              <Image 
-                src="/Logo.png" 
-                alt="F1 Radio Archive" 
-                width={200} 
-                height={60}
-                priority
-                className="h-auto w-auto max-h-16"
-              />
-            </Link>
-          </div>
+          <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+            <Image 
+              src="/Logo.png" 
+              alt="F1 Radio Archive" 
+              width={60} 
+              height={60}
+              priority
+              className="h-auto w-auto max-h-16"
+            />
+            <div>
+              <h1 className="font-[family-name:var(--font-exo2)] text-3xl tracking-wider text-balance uppercase">
+                F1 Radio Archive
+              </h1>
+              <p className="text-muted-foreground text-sm mt-1">Relive the most iconic team radio moments</p>
+            </div>
+          </Link>
           <div className="flex items-center gap-4">
             {clipCount > 0 && (
               <Badge variant="secondary" className="text-xs">
