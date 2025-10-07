@@ -3,13 +3,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Play, Lock, ThumbsUp, ThumbsDown, Star, Share2 } from "lucide-react"
+import { Play, Lock, ThumbsUp, ThumbsDown, Star, Share2, Plus } from "lucide-react"
 import { useState, useEffect } from "react"
 import { AudioPlayer } from "@/components/audio-player"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toggleFavorite } from "@/app/actions/favorites"
+import { suggestTranscript } from "@/app/actions/transcripts"
+import { addExistingTag, suggestNewTag, suggestExistingTag } from "@/app/actions/tags"
+import { Input } from "@/components/ui/input"
 
 type Clip = {
   id: string
@@ -25,10 +28,15 @@ type Clip = {
 
 export function ClipCard({ clip }: { clip: Clip }) {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false)
-  const [userVote, setUserVote] = useState<"up" | "down" | null>(null)
   const [voteCount, setVoteCount] = useState(0)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userVote, setUserVote] = useState<"up" | "down" | null>(null)
   const [isFavorited, setIsFavorited] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [showSuggestEdit, setShowSuggestEdit] = useState(false)
+  const [suggestedTranscript, setSuggestedTranscript] = useState("")
+  const [showAddTag, setShowAddTag] = useState(false)
+  const [newTagName, setNewTagName] = useState("")
+  const [availableCategories, setAvailableCategories] = useState<any[]>([])
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -36,7 +44,19 @@ export function ClipCard({ clip }: { clip: Clip }) {
   useEffect(() => {
     checkAuthAndVotes()
     checkFavoriteStatus()
+    fetchCategories()
   }, [])
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from("categories")
+      .select("*")
+      .order("name")
+    
+    if (data) {
+      setAvailableCategories(data)
+    }
+  }
 
   const checkAuthAndVotes = async () => {
     const {
@@ -179,6 +199,45 @@ export function ClipCard({ clip }: { clip: Clip }) {
     }
   }
 
+  const handleSuggestEdit = async () => {
+    if (!suggestedTranscript.trim()) return
+    
+    const result = await suggestTranscript(clip.id, suggestedTranscript)
+    
+    if (result.error) {
+      alert('Error submitting suggestion: ' + result.error)
+    } else {
+      alert('Thank you! Your transcript suggestion has been submitted for review.')
+      setShowSuggestEdit(false)
+      setSuggestedTranscript("")
+    }
+  }
+
+  const handleAddExistingTag = async (categoryId: string) => {
+    const result = await suggestExistingTag(clip.id, categoryId)
+    
+    if (result.error) {
+      alert('Error: ' + result.error)
+    } else {
+      alert('Tag suggestion submitted for review!')
+      setShowAddTag(false)
+    }
+  }
+
+  const handleSuggestNewTag = async () => {
+    if (!newTagName.trim()) return
+    
+    const result = await suggestNewTag(clip.id, newTagName)
+    
+    if (result.error) {
+      alert('Error: ' + result.error)
+    } else {
+      alert('New tag suggestion submitted for review!')
+      setShowAddTag(false)
+      setNewTagName("")
+    }
+  }
+
   return (
     <>
       <Card className="group hover:shadow-lg transition-shadow relative">
@@ -222,7 +281,7 @@ export function ClipCard({ clip }: { clip: Clip }) {
           {clip.transcript && <p className="text-sm text-muted-foreground italic line-clamp-2">"{clip.transcript}"</p>}
 
           {/* Categories */}
-          {categories.length > 0 && (
+          {(categories.length > 0 || isAuthenticated) && (
             <div className="flex flex-wrap gap-1">
               {categories.map((category, index) => (
                 <Badge 
@@ -234,6 +293,15 @@ export function ClipCard({ clip }: { clip: Clip }) {
                   {category!.name}
                 </Badge>
               ))}
+              {isAuthenticated && (
+                <Badge
+                  variant="outline"
+                  className="text-xs cursor-pointer hover:bg-accent transition-colors"
+                  onClick={() => setShowAddTag(!showAddTag)}
+                >
+                  <Plus className="h-3 w-3" />
+                </Badge>
+              )}
             </div>
           )}
 
@@ -314,15 +382,101 @@ export function ClipCard({ clip }: { clip: Clip }) {
             {/* Full Transcript */}
             {clip.transcript && (
               <div className="bg-muted rounded-lg p-4">
-                <p className="text-sm font-medium mb-2">Transcript</p>
-                <p className="text-sm text-muted-foreground italic">"{clip.transcript}"</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium">Transcript</p>
+                  {isAuthenticated && !showSuggestEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => {
+                        setShowSuggestEdit(true)
+                        setSuggestedTranscript(clip.transcript || "")
+                      }}
+                    >
+                      Suggest Edit
+                    </Button>
+                  )}
+                </div>
+                {!showSuggestEdit ? (
+                  <p className="text-sm text-muted-foreground italic">"{clip.transcript}"</p>
+                ) : (
+                  <div className="space-y-2">
+                    <textarea
+                      className="w-full min-h-[100px] p-2 text-sm rounded border bg-background"
+                      value={suggestedTranscript}
+                      onChange={(e) => setSuggestedTranscript(e.target.value)}
+                      placeholder="Enter your suggested transcript..."
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowSuggestEdit(false)
+                          setSuggestedTranscript("")
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSuggestEdit}
+                        disabled={!suggestedTranscript.trim()}
+                      >
+                        Submit Suggestion
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Categories */}
-            {categories.length > 0 && (
-              <div>
-                <p className="text-sm font-medium mb-2">Categories</p>
+            <div>
+              <p className="text-sm font-medium mb-2">Categories</p>
+              
+              {showAddTag && (
+                <div className="mb-3 p-3 bg-muted rounded-lg space-y-3">
+                  <div>
+                    <p className="text-xs font-medium mb-2">Select existing tag:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableCategories
+                        .filter(cat => !categories.some(c => c?.id === cat.id))
+                        .map((category) => (
+                          <Badge
+                            key={category.id}
+                            variant="outline"
+                            className="cursor-pointer hover:bg-accent"
+                            onClick={() => handleAddExistingTag(category.id)}
+                          >
+                            {category.name}
+                          </Badge>
+                        ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium mb-2">Or suggest new tag:</p>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="New tag name..."
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleSuggestNewTag}
+                        disabled={!newTagName.trim()}
+                      >
+                        Suggest
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(categories.length > 0 || isAuthenticated) && (
                 <div className="flex flex-wrap gap-2">
                   {categories.map((category, index) => (
                     <Badge 
@@ -337,9 +491,18 @@ export function ClipCard({ clip }: { clip: Clip }) {
                       {category!.name}
                     </Badge>
                   ))}
+                  {isAuthenticated && (
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => setShowAddTag(!showAddTag)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Badge>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Share and Vote Buttons */}
             <div className="flex items-center justify-center gap-3 pt-2">
