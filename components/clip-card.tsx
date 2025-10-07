@@ -297,7 +297,10 @@ export function ClipCard({ clip }: { clip: Clip }) {
                 <Badge
                   variant="outline"
                   className="text-xs cursor-pointer hover:bg-accent transition-colors"
-                  onClick={() => setShowAddTag(!showAddTag)}
+                  onClick={() => {
+                    setIsPlayerOpen(true)
+                    setShowAddTag(true)
+                  }}
                 >
                   <Plus className="h-3 w-3" />
                 </Badge>
@@ -346,7 +349,20 @@ export function ClipCard({ clip }: { clip: Clip }) {
         </CardContent>
       </Card>
 
-      <Dialog open={isPlayerOpen} onOpenChange={setIsPlayerOpen}>
+      {/* Audio Player Dialog */}
+      <Dialog 
+        open={isPlayerOpen} 
+        onOpenChange={(open) => {
+          setIsPlayerOpen(open)
+          if (!open) {
+            // Reset states when dialog closes
+            setShowAddTag(false)
+            setNewTagName("")
+            setShowSuggestEdit(false)
+            setSuggestedTranscript("")
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <div className="space-y-1">
@@ -464,6 +480,16 @@ export function ClipCard({ clip }: { clip: Clip }) {
                         onChange={(e) => setNewTagName(e.target.value)}
                         className="h-8 text-sm"
                       />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setShowAddTag(false)
+                          setNewTagName("")
+                        }}
+                      >
+                        Cancel
+                      </Button>
                       <Button
                         size="sm"
                         onClick={handleSuggestNewTag}
