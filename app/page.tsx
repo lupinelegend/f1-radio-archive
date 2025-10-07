@@ -42,13 +42,9 @@ export default async function HomePage({
     `,
     )
 
-  // If no filters, get random clips
+  // If no filters, we'll fetch more clips to calculate top-rated
   if (!hasFilters) {
-    // Get random clips by ordering randomly and limiting to 12
-    clipsQuery = clipsQuery.limit(12)
-    // Note: Postgres doesn't have a native random() order in Supabase client
-    // So we'll fetch recent clips instead
-    clipsQuery = clipsQuery.order("created_at", { ascending: false })
+    clipsQuery = clipsQuery.limit(100).order("created_at", { ascending: false })
   } else {
     clipsQuery = clipsQuery.order("created_at", { ascending: false })
   }
@@ -99,6 +95,36 @@ export default async function HomePage({
 
   if (params.season) {
     filteredClips = filteredClips.filter((clip) => clip.race?.season.toString() === params.season)
+  }
+
+  // If no filters, calculate top-rated clips
+  if (!hasFilters && filteredClips.length > 0) {
+    // Fetch vote counts and favorite counts for each clip
+    const clipIds = filteredClips.map(c => c.id)
+    
+    const [votesResult, favoritesResult] = await Promise.all([
+      supabase.from("votes").select("clip_id, vote_type").in("clip_id", clipIds),
+      supabase.from("favorites").select("clip_id").in("clip_id", clipIds)
+    ])
+
+    // Calculate scores for each clip
+    const clipScores = filteredClips.map(clip => {
+      const clipVotes = votesResult.data?.filter(v => v.clip_id === clip.id) || []
+      const upvotes = clipVotes.filter(v => v.vote_type === 'up').length
+      const downvotes = clipVotes.filter(v => v.vote_type === 'down').length
+      const favorites = favoritesResult.data?.filter(f => f.clip_id === clip.id).length || 0
+      
+      // Score: upvotes - downvotes + (favorites * 2)
+      const score = upvotes - downvotes + (favorites * 2)
+      
+      return { clip, score }
+    })
+
+    // Sort by score and take top 12
+    filteredClips = clipScores
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12)
+      .map(item => item.clip)
   }
 
   // Get unique locations and sessions for filters
