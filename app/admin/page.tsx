@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { TranscriptEditor } from "@/components/admin/transcript-editor"
 import { TranscriptSuggestions } from "@/components/admin/transcript-suggestions"
 import { TagSuggestions } from "@/components/admin/tag-suggestions"
+import { UpdateSection } from "@/components/admin/update-section"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -88,8 +89,11 @@ export default async function AdminPage() {
         </div>
 
         {/* Tabs for different sections */}
-        <Tabs defaultValue="transcript-suggestions" className="space-y-4">
+        <Tabs defaultValue="update" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="update">
+              Update
+            </TabsTrigger>
             <TabsTrigger value="transcript-suggestions">
               Transcript Suggestions ({transcriptSuggestionsCount})
             </TabsTrigger>
@@ -100,6 +104,13 @@ export default async function AdminPage() {
               Add Transcripts ({clipsNeedingTranscriptsCount})
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="update" className="space-y-4">
+            <div>
+              <h2 className="text-2xl font-semibold mb-4">Update Database</h2>
+              <UpdateSection />
+            </div>
+          </TabsContent>
 
           <TabsContent value="transcript-suggestions" className="space-y-4">
             <div>
