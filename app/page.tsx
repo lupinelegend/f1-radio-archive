@@ -42,11 +42,12 @@ export default async function HomePage({
     `,
     )
 
-  // If no filters, we'll fetch more clips to calculate top-rated
+  // Order by created_at for consistency
+  clipsQuery = clipsQuery.order("created_at", { ascending: false })
+  
+  // If no filters, we'll fetch all clips to calculate top-rated
   if (!hasFilters) {
-    clipsQuery = clipsQuery.limit(100).order("created_at", { ascending: false })
-  } else {
-    clipsQuery = clipsQuery.order("created_at", { ascending: false })
+    // Don't limit here - we need all clips to calculate proper scores
   }
 
   // Apply search filter
@@ -97,34 +98,32 @@ export default async function HomePage({
     filteredClips = filteredClips.filter((clip) => clip.race?.season.toString() === params.season)
   }
 
-  // If no filters, calculate top-rated clips
-  if (!hasFilters && filteredClips.length > 0) {
-    // Fetch vote counts and favorite counts for each clip
-    const clipIds = filteredClips.map(c => c.id)
+  // If no filters, get top-rated clips using SQL aggregation
+  if (!hasFilters) {
+    const { data: topRatedClips } = await supabase.rpc('get_top_rated_clips', { limit_count: 12 })
     
-    const [votesResult, favoritesResult] = await Promise.all([
-      supabase.from("votes").select("clip_id, vote_type").in("clip_id", clipIds),
-      supabase.from("favorites").select("clip_id").in("clip_id", clipIds)
-    ])
-
-    // Calculate scores for each clip
-    const clipScores = filteredClips.map(clip => {
-      const clipVotes = votesResult.data?.filter(v => v.clip_id === clip.id) || []
-      const upvotes = clipVotes.filter(v => v.vote_type === 'up').length
-      const downvotes = clipVotes.filter(v => v.vote_type === 'down').length
-      const favorites = favoritesResult.data?.filter(f => f.clip_id === clip.id).length || 0
+    if (topRatedClips && topRatedClips.length > 0) {
+      // Fetch full clip data for the top-rated clip IDs
+      const topClipIds = topRatedClips.map((c: any) => c.clip_id)
+      const { data: fullClips } = await supabase
+        .from("clips")
+        .select(
+          `
+          *,
+          driver:drivers(id, name, team, number),
+          race:races(id, name, location, season),
+          clip_tags(category:categories(id, name))
+        `
+        )
+        .in('id', topClipIds)
       
-      // Score: upvotes - downvotes + (favorites * 2)
-      const score = upvotes - downvotes + (favorites * 2)
-      
-      return { clip, score }
-    })
-
-    // Sort by score and take top 12
-    filteredClips = clipScores
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 12)
-      .map(item => item.clip)
+      // Sort by the original score order
+      if (fullClips) {
+        filteredClips = topClipIds
+          .map((id: string) => fullClips.find(c => c.id === id))
+          .filter(Boolean) as any[]
+      }
+    }
   }
 
   // Get unique locations and sessions for filters
