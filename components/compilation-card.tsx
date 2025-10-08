@@ -3,10 +3,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Play, Music } from "lucide-react"
+import { Play, Music, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AudioPlayer } from "@/components/audio-player"
+import { deleteCompilation } from "@/app/actions/compilations"
 
 type Compilation = {
   id: string
@@ -28,6 +29,7 @@ type Compilation = {
 export function CompilationCard({ compilation }: { compilation: Compilation }) {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false)
   const [currentClipIndex, setCurrentClipIndex] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const clips = compilation.compilation_clips.map((cc) => cc.clip).filter(Boolean)
   const currentClip = clips[currentClipIndex]
@@ -35,6 +37,22 @@ export function CompilationCard({ compilation }: { compilation: Compilation }) {
   const handleNextClip = () => {
     if (currentClipIndex < clips.length - 1) {
       setCurrentClipIndex(currentClipIndex + 1)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete "${compilation.title}"? This cannot be undone.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    const result = await deleteCompilation(compilation.id)
+    
+    if (result.error) {
+      alert('Error: ' + result.error)
+      setIsDeleting(false)
+    } else {
+      window.location.reload()
     }
   }
 
@@ -63,19 +81,29 @@ export function CompilationCard({ compilation }: { compilation: Compilation }) {
             <span>{clips.length} clips</span>
           </div>
 
-          {/* Play Button */}
-          <Button
-            size="sm"
-            onClick={() => {
-              setCurrentClipIndex(0)
-              setIsPlayerOpen(true)
-            }}
-            className="w-full gap-2"
-            disabled={clips.length === 0}
-          >
-            <Play className="h-4 w-4" />
-            Play Compilation
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                setCurrentClipIndex(0)
+                setIsPlayerOpen(true)
+              }}
+              className="flex-1 gap-2"
+              disabled={clips.length === 0}
+            >
+              <Play className="h-4 w-4" />
+              Play Compilation
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

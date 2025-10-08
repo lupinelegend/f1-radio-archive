@@ -43,11 +43,12 @@ export default async function PremiumPage() {
       id,
       title,
       audio_url,
+      transcript,
       driver:drivers(name),
       race:races(name, location, season)
     `)
     .order("created_at", { ascending: false })
-    .limit(100)
+    .limit(200)
 
   return (
     <div className="min-h-screen bg-background">

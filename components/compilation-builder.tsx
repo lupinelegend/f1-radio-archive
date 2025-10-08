@@ -6,13 +6,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus, Download } from "lucide-react"
+import { X, Plus, Download, Play } from "lucide-react"
 import { createCompilation } from "@/app/actions/compilations"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AudioPlayer } from "@/components/audio-player"
 
 type Clip = {
   id: string
   title: string
   audio_url: string
+  transcript: string | null
   driver: { name: string } | null
   race: { name: string; location: string; season: number } | null
 }
@@ -23,6 +26,8 @@ export function CompilationBuilder({ availableClips }: { availableClips: Clip[] 
   const [description, setDescription] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   const [showBuilder, setShowBuilder] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [previewClip, setPreviewClip] = useState<Clip | null>(null)
 
   const addClip = (clip: Clip) => {
     if (selectedClips.length >= 10) {
@@ -193,26 +198,91 @@ export function CompilationBuilder({ availableClips }: { availableClips: Clip[] 
       <Card>
         <CardHeader>
           <CardTitle>Add Clips</CardTitle>
-          <CardDescription>Click on clips to add them to your compilation</CardDescription>
+          <CardDescription>Search, preview, and add clips to your compilation</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Search */}
+          <Input
+            placeholder="Search by driver, location, or transcript..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+
+          {/* Clips List */}
           <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
-            {availableClips.map((clip) => (
-              <button
-                key={clip.id}
-                onClick={() => addClip(clip)}
-                disabled={selectedClips.find(c => c.id === clip.id) !== undefined}
-                className="text-left p-3 rounded border hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <p className="font-medium text-sm">{clip.driver?.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {clip.race?.location} - {clip.race?.name} {clip.race?.season}
-                </p>
-              </button>
-            ))}
+            {availableClips
+              .filter(clip => {
+                if (!searchQuery) return true
+                const query = searchQuery.toLowerCase()
+                return (
+                  clip.driver?.name.toLowerCase().includes(query) ||
+                  clip.race?.location.toLowerCase().includes(query) ||
+                  clip.transcript?.toLowerCase().includes(query)
+                )
+              })
+              .map((clip) => (
+                <div
+                  key={clip.id}
+                  className={`p-3 rounded border transition-colors ${
+                    selectedClips.find(c => c.id === clip.id)
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:bg-accent cursor-pointer'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1" onClick={() => addClip(clip)}>
+                      <p className="font-medium text-sm">{clip.driver?.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {clip.race?.location} - {clip.race?.name} {clip.race?.season}
+                      </p>
+                      {clip.transcript && (
+                        <p className="text-xs text-muted-foreground italic mt-1 line-clamp-2">
+                          "{clip.transcript}"
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setPreviewClip(clip)
+                      }}
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewClip !== null} onOpenChange={() => setPreviewClip(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{previewClip?.driver?.name}</DialogTitle>
+          </DialogHeader>
+          {previewClip && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {previewClip.race?.location} - {previewClip.race?.name} {previewClip.race?.season}
+              </p>
+              {previewClip.transcript && (
+                <p className="text-sm italic">"{previewClip.transcript}"</p>
+              )}
+              <AudioPlayer audioUrl={previewClip.audio_url} title={previewClip.title} autoPlay />
+              <Button onClick={() => {
+                addClip(previewClip)
+                setPreviewClip(null)
+              }} className="w-full">
+                Add to Compilation
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
