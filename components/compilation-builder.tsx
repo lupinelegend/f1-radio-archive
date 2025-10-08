@@ -49,6 +49,8 @@ export function CompilationBuilder({
   const [selectedDriver, setSelectedDriver] = useState<string>("all")
   const [selectedRace, setSelectedRace] = useState<string>("all")
   const [selectedSeason, setSelectedSeason] = useState<string>("all")
+  const [selectedSession, setSelectedSession] = useState<string>("all")
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
   
   const supabase = createClient()
 
@@ -58,7 +60,7 @@ export function CompilationBuilder({
       fetchClips()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDriver, selectedRace, selectedSeason, searchQuery, showBuilder])
+  }, [selectedDriver, selectedRace, selectedSeason, selectedSession, selectedCategory, searchQuery, showBuilder])
 
   const fetchClips = async () => {
     setIsLoading(true)
@@ -91,6 +93,24 @@ export function CompilationBuilder({
         const seasonRaces = races.filter(r => r.season.toString() === selectedSeason).map(r => r.id)
         if (seasonRaces.length > 0) {
           query = query.in("race_id", seasonRaces)
+        }
+      }
+      if (selectedSession && selectedSession !== "all") {
+        const sessionRaces = races.filter(r => r.name.includes(selectedSession)).map(r => r.id)
+        if (sessionRaces.length > 0) {
+          query = query.in("race_id", sessionRaces)
+        }
+      }
+      if (selectedCategory && selectedCategory !== "all") {
+        // Need to join with clip_tags to filter by category
+        const { data: taggedClips } = await supabase
+          .from("clip_tags")
+          .select("clip_id")
+          .eq("category_id", selectedCategory)
+        
+        if (taggedClips && taggedClips.length > 0) {
+          const clipIds = taggedClips.map(t => t.clip_id)
+          query = query.in("id", clipIds)
         }
       }
       if (searchQuery) {
@@ -332,8 +352,39 @@ export function CompilationBuilder({
               </SelectContent>
             </Select>
 
+            <Select value={selectedSession} onValueChange={setSelectedSession}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="All Sessions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sessions</SelectItem>
+                {[...new Set(races.map(r => {
+                  const match = r.name.match(/(Practice|Qualifying|Sprint|Race)/i)
+                  return match ? match[0] : null
+                }).filter(Boolean))].sort().map(session => (
+                  <SelectItem key={session} value={session!}>
+                    {session}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {/* Clear Filters Button */}
-            {(selectedDriver !== "all" || selectedSeason !== "all" || selectedRace !== "all") && (
+            {(selectedDriver !== "all" || selectedSeason !== "all" || selectedRace !== "all" || selectedSession !== "all" || selectedCategory !== "all") && (
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -341,6 +392,8 @@ export function CompilationBuilder({
                   setSelectedDriver("all")
                   setSelectedSeason("all")
                   setSelectedRace("all")
+                  setSelectedSession("all")
+                  setSelectedCategory("all")
                 }} 
                 className="gap-2"
               >
