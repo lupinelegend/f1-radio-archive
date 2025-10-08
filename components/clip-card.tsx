@@ -249,15 +249,14 @@ export function ClipCard({ clip }: { clip: Clip }) {
     if (!isAuthenticated) return
     
     try {
-      const response = await fetch(clip.audio_url)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
+      const filename = `${clip.driver?.name || 'clip'}_${clip.race?.location || ''}_${clip.race?.season || ''}.mp3`.replace(/\s+/g, '_')
+      const downloadUrl = `/api/download?url=${encodeURIComponent(clip.audio_url)}&filename=${encodeURIComponent(filename)}`
+      
       const a = document.createElement('a')
-      a.href = url
-      a.download = `${clip.driver?.name || 'clip'}_${clip.race?.location || ''}_${clip.race?.season || ''}.mp3`
+      a.href = downloadUrl
+      a.download = filename
       document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error) {
       console.error('Download failed:', error)
