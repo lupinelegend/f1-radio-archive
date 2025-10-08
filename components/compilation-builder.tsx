@@ -46,9 +46,9 @@ export function CompilationBuilder({
   const [isLoading, setIsLoading] = useState(false)
   
   // Filters
-  const [selectedDriver, setSelectedDriver] = useState<string>("")
-  const [selectedRace, setSelectedRace] = useState<string>("")
-  const [selectedSeason, setSelectedSeason] = useState<string>("")
+  const [selectedDriver, setSelectedDriver] = useState<string>("all")
+  const [selectedRace, setSelectedRace] = useState<string>("all")
+  const [selectedSeason, setSelectedSeason] = useState<string>("all")
   
   const supabase = createClient()
 
@@ -77,13 +77,13 @@ export function CompilationBuilder({
         .order("created_at", { ascending: false })
         .limit(25)
 
-      if (selectedDriver) {
+      if (selectedDriver && selectedDriver !== "all") {
         query = query.eq("driver_id", selectedDriver)
       }
-      if (selectedRace) {
+      if (selectedRace && selectedRace !== "all") {
         query = query.eq("race_id", selectedRace)
       }
-      if (selectedSeason) {
+      if (selectedSeason && selectedSeason !== "all") {
         const seasonRaces = races.filter(r => r.season.toString() === selectedSeason).map(r => r.id)
         if (seasonRaces.length > 0) {
           query = query.in("race_id", seasonRaces)
@@ -295,7 +295,7 @@ export function CompilationBuilder({
                 <SelectValue placeholder="All Drivers" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Drivers</SelectItem>
+                <SelectItem value="all">All Drivers</SelectItem>
                 {drivers.map(driver => (
                   <SelectItem key={driver.id} value={driver.id}>{driver.name}</SelectItem>
                 ))}
@@ -307,7 +307,7 @@ export function CompilationBuilder({
                 <SelectValue placeholder="All Seasons" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Seasons</SelectItem>
+                <SelectItem value="all">All Seasons</SelectItem>
                 {[...new Set(races.map(r => r.season))].sort((a, b) => b - a).map(season => (
                   <SelectItem key={season} value={season.toString()}>{season}</SelectItem>
                 ))}
@@ -319,7 +319,7 @@ export function CompilationBuilder({
                 <SelectValue placeholder="All Races" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Races</SelectItem>
+                <SelectItem value="all">All Races</SelectItem>
                 {races.map(race => (
                   <SelectItem key={race.id} value={race.id}>
                     {race.location} {race.season}
