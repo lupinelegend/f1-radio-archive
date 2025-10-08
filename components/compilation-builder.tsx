@@ -81,7 +81,11 @@ export function CompilationBuilder({
         query = query.eq("driver_id", selectedDriver)
       }
       if (selectedRace && selectedRace !== "all") {
-        query = query.eq("race_id", selectedRace)
+        // selectedRace is now a location, so filter by location
+        const locationRaces = races.filter(r => r.location === selectedRace).map(r => r.id)
+        if (locationRaces.length > 0) {
+          query = query.in("race_id", locationRaces)
+        }
       }
       if (selectedSeason && selectedSeason !== "all") {
         const seasonRaces = races.filter(r => r.season.toString() === selectedSeason).map(r => r.id)
@@ -289,9 +293,9 @@ export function CompilationBuilder({
           />
 
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <Select value={selectedDriver} onValueChange={setSelectedDriver}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="All Drivers" />
               </SelectTrigger>
               <SelectContent>
@@ -303,30 +307,47 @@ export function CompilationBuilder({
             </Select>
 
             <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="All Seasons" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Seasons</SelectItem>
                 {[...new Set(races.map(r => r.season))].sort((a, b) => b - a).map(season => (
-                  <SelectItem key={season} value={season.toString()}>{season}</SelectItem>
+                  <SelectItem key={season} value={season.toString()}>{season} Season</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             <Select value={selectedRace} onValueChange={setSelectedRace}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Races" />
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="All Grand Prix" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Races</SelectItem>
-                {races.map(race => (
-                  <SelectItem key={race.id} value={race.id}>
-                    {race.location} {race.season}
+                <SelectItem value="all">All Grand Prix</SelectItem>
+                {[...new Set(races.map(r => r.location))].sort().map(location => (
+                  <SelectItem key={location} value={location}>
+                    {location}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Clear Filters Button */}
+            {(selectedDriver !== "all" || selectedSeason !== "all" || selectedRace !== "all") && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setSelectedDriver("all")
+                  setSelectedSeason("all")
+                  setSelectedRace("all")
+                }} 
+                className="gap-2"
+              >
+                <X className="h-4 w-4" />
+                Clear filters
+              </Button>
+            )}
           </div>
 
           {/* Clips List */}
