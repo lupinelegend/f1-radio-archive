@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Play, Lock, ThumbsUp, ThumbsDown, Star, Share2, Plus } from "lucide-react"
+import { Play, Lock, ThumbsUp, ThumbsDown, Star, Share2, Plus, Download } from "lucide-react"
 import { useState, useEffect } from "react"
 import { AudioPlayer } from "@/components/audio-player"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -13,6 +13,7 @@ import { toggleFavorite } from "@/app/actions/favorites"
 import { suggestTranscript } from "@/app/actions/transcripts"
 import { addExistingTag, suggestNewTag, suggestExistingTag } from "@/app/actions/tags"
 import { Input } from "@/components/ui/input"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 type Clip = {
   id: string
@@ -244,6 +245,26 @@ export function ClipCard({ clip }: { clip: Clip }) {
     }
   }
 
+  const handleDownload = async () => {
+    if (!isAuthenticated) return
+    
+    try {
+      const response = await fetch(clip.audio_url)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${clip.driver?.name || 'clip'}_${clip.race?.location || ''}_${clip.race?.season || ''}.mp3`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Download failed:', error)
+      alert('Failed to download clip')
+    }
+  }
+
   return (
     <>
       <Card className="group hover:shadow-lg transition-shadow relative">
@@ -346,6 +367,26 @@ export function ClipCard({ clip }: { clip: Clip }) {
                   <ThumbsDown className={`h-3 w-3 ${userVote === "down" ? "fill-current" : ""}`} />
                 </Button>
               </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 rounded-lg"
+                      onClick={handleDownload}
+                      disabled={!isAuthenticated}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  {!isAuthenticated && (
+                    <TooltipContent>
+                      <p>Log in to download clips</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <Button size="sm" onClick={() => setIsPlayerOpen(true)} className="gap-2">
               <Play className="h-4 w-4" />
@@ -568,6 +609,27 @@ export function ClipCard({ clip }: { clip: Clip }) {
                   <ThumbsDown className={`h-4 w-4 ${userVote === "down" ? "fill-current" : ""}`} />
                 </Button>
               </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="gap-2 rounded-lg h-10"
+                      onClick={handleDownload}
+                      disabled={!isAuthenticated}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </TooltipTrigger>
+                  {!isAuthenticated && (
+                    <TooltipContent>
+                      <p>Log in to download clips</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
             {!isAuthenticated && <p className="text-xs text-center text-muted-foreground">Login to vote on clips</p>}
           </div>
