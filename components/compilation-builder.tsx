@@ -63,38 +63,50 @@ export function CompilationBuilder({
   const fetchClips = async () => {
     setIsLoading(true)
     
-    let query = supabase
-      .from("clips")
-      .select(`
-        id,
-        title,
-        audio_url,
-        transcript,
-        driver:drivers(name),
-        race:races(name, location, season)
-      `)
-      .order("created_at", { ascending: false })
-      .limit(25)
+    try {
+      let query = supabase
+        .from("clips")
+        .select(`
+          id,
+          title,
+          audio_url,
+          transcript,
+          driver:drivers(name),
+          race:races(name, location, season)
+        `)
+        .order("created_at", { ascending: false })
+        .limit(25)
 
-    if (selectedDriver) {
-      query = query.eq("driver_id", selectedDriver)
-    }
-    if (selectedRace) {
-      query = query.eq("race_id", selectedRace)
-    }
-    if (selectedSeason) {
-      const seasonRaces = races.filter(r => r.season.toString() === selectedSeason).map(r => r.id)
-      if (seasonRaces.length > 0) {
-        query = query.in("race_id", seasonRaces)
+      if (selectedDriver) {
+        query = query.eq("driver_id", selectedDriver)
       }
-    }
-    if (searchQuery) {
-      query = query.or(`transcript.ilike.%${searchQuery}%`)
-    }
+      if (selectedRace) {
+        query = query.eq("race_id", selectedRace)
+      }
+      if (selectedSeason) {
+        const seasonRaces = races.filter(r => r.season.toString() === selectedSeason).map(r => r.id)
+        if (seasonRaces.length > 0) {
+          query = query.in("race_id", seasonRaces)
+        }
+      }
+      if (searchQuery) {
+        query = query.or(`transcript.ilike.%${searchQuery}%`)
+      }
 
-    const { data } = await query
-    setAvailableClips(data || [])
-    setIsLoading(false)
+      const { data, error } = await query
+      
+      if (error) {
+        console.error("Error fetching clips:", error)
+        setAvailableClips([])
+      } else {
+        setAvailableClips(data || [])
+      }
+    } catch (error) {
+      console.error("Error in fetchClips:", error)
+      setAvailableClips([])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const addClip = (clip: Clip) => {
