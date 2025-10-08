@@ -36,19 +36,12 @@ export default async function PremiumPage() {
     )
     .order("created_at", { ascending: false })
 
-  // Fetch all clips for the builder
-  const { data: allClips } = await supabase
-    .from("clips")
-    .select(`
-      id,
-      title,
-      audio_url,
-      transcript,
-      driver:drivers(name),
-      race:races(name, location, season)
-    `)
-    .order("created_at", { ascending: false })
-    .limit(200)
+  // Fetch drivers, races, and categories for filters
+  const [driversResult, racesResult, categoriesResult] = await Promise.all([
+    supabase.from("drivers").select("*").order("name"),
+    supabase.from("races").select("*").order("season", { ascending: false }),
+    supabase.from("categories").select("*").order("name")
+  ])
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,7 +61,11 @@ export default async function PremiumPage() {
           <div>
             <h2 className="font-bold text-2xl mb-2">Create Your Own Compilation</h2>
             <p className="text-muted-foreground mb-4">Select up to 10 clips and merge them into a single downloadable file</p>
-            <CompilationBuilder availableClips={allClips || []} />
+            <CompilationBuilder 
+              drivers={driversResult.data || []}
+              races={racesResult.data || []}
+              categories={categoriesResult.data || []}
+            />
           </div>
 
           <div>

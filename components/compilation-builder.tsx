@@ -1,15 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { X, Plus, Download, Play } from "lucide-react"
 import { createCompilation } from "@/app/actions/compilations"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AudioPlayer } from "@/components/audio-player"
+import { createClient } from "@/lib/supabase/client"
 
 type Clip = {
   id: string
@@ -20,7 +22,19 @@ type Clip = {
   race: { name: string; location: string; season: number } | null
 }
 
-export function CompilationBuilder({ availableClips }: { availableClips: Clip[] }) {
+type Driver = { id: string; name: string }
+type Race = { id: string; name: string; location: string; season: number }
+type Category = { id: string; name: string }
+
+export function CompilationBuilder({ 
+  drivers, 
+  races, 
+  categories 
+}: { 
+  drivers: Driver[]
+  races: Race[]
+  categories: Category[]
+}) {
   const [selectedClips, setSelectedClips] = useState<Clip[]>([])
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -28,6 +42,57 @@ export function CompilationBuilder({ availableClips }: { availableClips: Clip[] 
   const [showBuilder, setShowBuilder] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [previewClip, setPreviewClip] = useState<Clip | null>(null)
+  const [availableClips, setAvailableClips] = useState<Clip[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  
+  // Filters
+  const [selectedDriver, setSelectedDriver] = useState<string>("")
+  const [selectedRace, setSelectedRace] = useState<string>("")
+  const [selectedSeason, setSelectedSeason] = useState<string>("")
+  
+  const supabase = createClient()
+
+  // Fetch clips based on filters
+  useEffect(() => {
+    fetchClips()
+  }, [selectedDriver, selectedRace, selectedSeason, searchQuery])
+
+  const fetchClips = async () => {
+    setIsLoading(true)
+    
+    let query = supabase
+      .from("clips")
+      .select(`
+        id,
+        title,
+        audio_url,
+        transcript,
+        driver:drivers(name),
+        race:races(name, location, season)
+      `)
+      .order("created_at", { ascending: false })
+      .limit(25)
+
+    if (selectedDriver) {
+      query = query.eq("driver_id", selectedDriver)
+    }
+    if (selectedRace) {
+      query = query.eq("race_id", selectedRace)
+    }
+    if (selectedSeason) {
+      const seasonRaces = races.filter(r => r.season.toString() === selectedSeason).map(r => r.id)
+      if (seasonRaces.length > 0) {
+        query = query.in("race_id", seasonRaces)
+      }
+    }
+    if (searchQuery) {
+      query = query.or(`transcript.ilike.%${searchQuery}%`)
+    }
+
+    const { data } = await query
+    setAvailableClips(data || [])
+    setIsLoading(false)
+  }
 
   const addClip = (clip: Clip) => {
     if (selectedClips.length >= 10) {
@@ -203,10 +268,51 @@ export function CompilationBuilder({ availableClips }: { availableClips: Clip[] 
         <CardContent className="space-y-4">
           {/* Search */}
           <Input
-            placeholder="Search by driver, location, or transcript..."
+            placeholder="Search transcripts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <Select value={selectedDriver} onValueChange={setSelectedDriver}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Drivers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Drivers</SelectItem>
+                {drivers.map(driver => (
+                  <SelectItem key={driver.id} value={driver.id}>{driver.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedSeason} onValueChange={setSelectedSeason}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Seasons" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Seasons</SelectItem>
+                {[...new Set(races.map(r => r.season))].sort((a, b) => b - a).map(season => (
+                  <SelectItem key={season} value={season.toString()}>{season}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedRace} onValueChange={setSelectedRace}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Races" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Races</SelectItem>
+                {races.map(race => (
+                  <SelectItem key={race.id} value={race.id}>
+                    {race.location} {race.season}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Clips List */}
           <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
