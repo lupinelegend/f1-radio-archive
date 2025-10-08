@@ -45,6 +45,12 @@ export function ClipCard({ clip }: { clip: Clip }) {
     checkAuthAndVotes()
     checkFavoriteStatus()
     fetchCategories()
+    
+    // Check if this clip should be auto-opened from URL
+    const clipIdFromUrl = searchParams.get('clip')
+    if (clipIdFromUrl === clip.id) {
+      setIsPlayerOpen(true)
+    }
   }, [])
 
   const fetchCategories = async () => {
