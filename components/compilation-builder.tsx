@@ -54,8 +54,11 @@ export function CompilationBuilder({
 
   // Fetch clips based on filters
   useEffect(() => {
-    fetchClips()
-  }, [selectedDriver, selectedRace, selectedSeason, searchQuery])
+    if (showBuilder) {
+      fetchClips()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDriver, selectedRace, selectedSeason, searchQuery, showBuilder])
 
   const fetchClips = async () => {
     setIsLoading(true)
