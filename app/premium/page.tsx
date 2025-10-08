@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { CompilationCard } from "@/components/compilation-card"
+import { CompilationBuilder } from "@/components/compilation-builder"
 import { Header } from "@/components/header"
 import { Crown } from "lucide-react"
 
@@ -35,6 +36,19 @@ export default async function PremiumPage() {
     )
     .order("created_at", { ascending: false })
 
+  // Fetch all clips for the builder
+  const { data: allClips } = await supabase
+    .from("clips")
+    .select(`
+      id,
+      title,
+      audio_url,
+      driver:drivers(name),
+      race:races(name, location, season)
+    `)
+    .order("created_at", { ascending: false })
+    .limit(100)
+
   return (
     <div className="min-h-screen bg-background">
       <Header clipCount={0} />
@@ -49,9 +63,16 @@ export default async function PremiumPage() {
             </div>
           </div>
 
+          {/* Compilation Builder */}
           <div>
-            <h2 className="font-bold text-2xl mb-2">Curated Compilations</h2>
-            <p className="text-muted-foreground">Expertly curated collections of the best F1 radio moments</p>
+            <h2 className="font-bold text-2xl mb-2">Create Your Own Compilation</h2>
+            <p className="text-muted-foreground mb-4">Select up to 10 clips and merge them into a single downloadable file</p>
+            <CompilationBuilder availableClips={allClips || []} />
+          </div>
+
+          <div>
+            <h2 className="font-bold text-2xl mb-2">Your Compilations</h2>
+            <p className="text-muted-foreground">Previously created compilations</p>
           </div>
 
           {/* Compilations Grid */}
